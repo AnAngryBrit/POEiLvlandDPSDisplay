@@ -1,4 +1,4 @@
-; This script can be found here:
+; original script can be found here:
 ; https://www.pathofexile.com/forum/view-thread/594346
 ; If you have any questions or comments please post them there as well. If you think you can help
 ; improve this project. I am looking for contributors. So Pm me if you think you can help.
@@ -11,7 +11,7 @@
 ; 
 ;
 
- 
+
 #NoEnv ; Recommended for performance and compatibility with future AutoHotkey releases.
 #Persistent ; Stay open in background
 SendMode Input ; Recommended for new scripts due to its superior speed and reliability.
@@ -25,14 +25,13 @@ DisplayBaseLevel = 1 ; Enabled by default change to 0 to disable
 MouseMoveThreshold := 40
 
 ;How many ticks to wait before removing tooltip. 1 tick = 100ms. Example, 50 ticks = 5secends, 75 Ticks = 7.5Secends
-ToolTipTimeoutTicks := 50 
+ToolTipTimeoutTicks := 50
 
 ; Font size for the tooltip, leave empty for default
 FontSize := 12
 
-
 ; Menu tooltip
-Menu, tray, Tip, Path of Exile Itemlevel and DPS Display
+Menu, Tray, Tip, POE Ilevel DPS and Resist Display
  
 ; Create font for later use
 FixedFont := CreateFont()
@@ -76,6 +75,16 @@ ParseDamage(String, DmgType, ByRef DmgLo, ByRef DmgHi)
 	}
 }
 
+; Parse elemental resistance
+ParseResistance(String, ResType, ByRef Res)
+{
+	IfInString, String, %ResType% Resistance
+	{
+	StringSplit, Arr, String, %A_Space%, +`%
+	Res += Arr1
+	}
+}
+
 ; Added fuction for reading itemlist.txt added fuction by kongyuyu
 if DisplayBaseLevel = 1
 {
@@ -113,6 +122,7 @@ ParseClipBoardChanges()
 	ItemName := 
 	ItemLevel := -1
 	IsWeapon := False
+	HasResistance := False
 	PhysLo := 0
 	PhysHi := 0
 	Quality := 0
@@ -126,6 +136,10 @@ ParseClipBoardChanges()
 	FireHi := 0
 	LighLo := 0
 	LighHi := 0
+	ColdRes := 0
+	FireRes := 0
+	LightningRes := 0
+	ChaosRes := 0
  
 	Loop, Parse, Clipboard, `n, `r
 	{
@@ -172,7 +186,62 @@ ParseClipBoardChanges()
 			Quality := Arr2
 			Continue
 		}
- 
+		
+		; Check and Parse for Two-Stone Rings
+		IfInString, ItemName, Two-Stone Ring
+		{
+			HasResistance := true
+			
+			IfInString, A_LoopField, Fire and Cold
+			{
+				StringSplit, Arr, A_LoopField, %A_Space%, +`%
+				FireRes += Arr1
+				ColdRes += Arr1
+				;MsgBox, , , %FireRes% and %ColdRes%
+				Continue
+			}
+			
+			IfInString, A_LoopField, Cold and Lightning
+			{
+				StringSplit, Arr, A_LoopField, %A_Space%, +`%
+				ColdRes += Arr1
+				LightningRes += Arr1
+				;MsgBox, , , %ColdRes% and %LightningRes%
+				Continue
+			}
+			
+			IfInString, A_LoopField, Fire and Lightning
+			{
+				StringSplit, Arr, A_LoopField, %A_Space%, +`%
+				FireRes += Arr1
+				LightningRes += Arr1
+				;MsgBox, , , %FireRes% and %Lightning%
+				Continue
+			}
+		}
+		
+		;Check for all elemental resistances
+		IfInString, A_LoopField, to all Elemental Resistances
+		{
+			HasResistance := true
+			StringSplit, Arr, A_LoopField, %A_Space%, +`%
+			ColdRes += Arr1
+			FireRes += Arr1
+			LightningRes += Arr1
+			continue
+		}
+		
+		;Check for elemental resistance
+		IfInString, A_LoopField, Resistance
+		{
+			HasResistance := true
+			ParseResistance(A_LoopField, "Cold", ColdRes)
+			ParseResistance(A_LoopField, "Fire", FireRes)
+			ParseResistance(A_LoopField, "Lightning", LightningRes)
+			ParseResistance(A_LoopField, "Chaos", ChaosRes)
+			continue
+		}
+		
 		; Get total physical damage
 		IfInString, A_LoopField, Physical Damage:
 		{
@@ -189,7 +258,7 @@ ParseClipBoardChanges()
 			IsWeapon = True
 			Continue
 		}
- 
+			 
 		; These only make sense for weapons
 		If IsWeapon 
 		{
@@ -259,7 +328,12 @@ ParseClipBoardChanges()
 			TT = %TT%`nQ20 DPS:   %Q20Dps%
 		}
 	}
- 
+	
+	;Add Resistances to ToolTip
+	if HasResistance {
+		TT = %TT%`nFire Resistance:	%FireRes%`nCold Resistance:	%ColdRes%`nLightning Resistance:	%LightningRes%`nChaos Resistance:	%ChaosRes%
+	}
+	 
         ; Replaces Clipboard with tooltip data
         StringReplace, clipboard, TT, `n, %A_SPACE% , All
 
@@ -271,6 +345,7 @@ ParseClipBoardChanges()
 	global ToolTipTimeout := 0
 	SetTimer, ToolTipTimer, 100
 }
+
  
 ; Tick every 100 ms
 ; Remove tooltip if mouse is moved or 5 seconds pass
