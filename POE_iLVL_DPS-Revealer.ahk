@@ -362,3 +362,35 @@ return
  
 OnClipBoardChange:
 ParseClipBoardChanges()
+
+; Create keyboard macros
+^d::
+	#IfWinActive, Path of Exile
+    SendInput, {Enter}
+    sleep, 20
+    SendInput, {/}oos
+    SendInput, {Enter}
+return
+
+F3::
+	#IfWinActive, Path of Exile
+	BlockInput On
+	sendinput {esc}
+	WinGetPos,,,Width,Height,A
+	x := (Width / 2)
+	y := Height * .44
+	MouseClick, left, x, y, 1, 1
+	BlockInput Off
+return
+ 
+^S::
+	#IfWinActive, Path of Exile
+	SendInput, {enter}
+	Sleep 50
+	SendInput, /remaining
+	Sleep 50
+	SendInput, {enter}
+return
+
+F7::Suspend
+F8::ExitApp
